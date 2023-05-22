@@ -1,0 +1,6 @@
+*.txt
+in
+out
+pipex
+*.o
+obj

@@ -6,17 +6,17 @@
 #    By: yitoh <yitoh@student.codam.nl>               +#+                      #
 #                                                    +#+                       #
 #    Created: 2023/05/12 13:16:14 by yitoh         #+#    #+#                  #
-#    Updated: 2023/05/12 13:16:56 by yitoh         ########   odam.nl          #
+#    Updated: 2023/05/22 19:34:09 by yitoh         ########   odam.nl          #
 #                                                                              #
 # **************************************************************************** #
 
 
 CC = cc
-SRC = 
+SRC = pipex.c fork_process.c
 OBJ = $(addprefix $(OBJ_DIR), $(SRC:.c=.o))
 OBJ_DIR = ./obj/
-CFLAG = -Wall -Wextra -Werror #-g -fsanitize=address
-NAME = fdf
+CFLAG = -Wall -Wextra -Werror -g -fsanitize=address
+NAME = pipex
 LIBFT_DIR = ./Libft
 LIBFT = $(LIBFT_DIR)/libft.a
 
