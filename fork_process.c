@@ -6,25 +6,25 @@
 /*   By: yitoh <yitoh@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/05/22 16:09:09 by yitoh         #+#    #+#                 */
-/*   Updated: 2023/05/29 20:17:59 by yitoh         ########   odam.nl         */
+/*   Updated: 2023/05/30 12:57:11 by yitoh         ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "pipex.h"
 
 //read from infile, write to pipe
-void	child_process1(int fd1, char **cmd1, t_pipex *all, char **envp)
+void	child_process1(char *infile, char **cmd1, t_pipex *all, char **envp)
 {
 	char	*p_cmd;
 	int		i;
 
 	p_cmd = all->p_cmd1;
-	if (dup2(fd1, 0) < 0)
-		perror("dup2");
-	if (dup2(all->pip[1], 1) < 0)
-		perror("dup2");
-	close (all->pip[0]);
-	close (fd1);
+	all->fd_in = open(infile, O_RDONLY);
+	if (all->fd_in < 0)
+		perror("Error");
+	open_dup(all->fd_in, all->pip[1], all->pip[0]);
+	if (close(all->fd_in) < 0)
+		error_exit("file can't close");
 	i = 0;
 	while (all->path[i])
 	{
@@ -37,22 +37,23 @@ void	child_process1(int fd1, char **cmd1, t_pipex *all, char **envp)
 		++i;
 	}
 	execve(p_cmd, cmd1, envp);
-	perror("execve");
+	if (close(all->pip[1]) < 0)
+		error_exit("pipe can't close");
 }
 
 //read from pipe, wait 
-void	child_process2(int fd2, char **cmd2, t_pipex *all, char **envp)
+void	child_process2(char *outfile, char **cmd2, t_pipex *all, char **envp)
 {
 	char	*p_cmd;
 	int		i;
 
 	p_cmd = all->p_cmd2;
-	if (dup2(all->pip[0], 0) < 0)
-		perror("dup2");
-	if (dup2(fd2, 1) < 0)
-		perror("dup2");
-	close (all->pip[1]);
-	close (fd2);
+	all->fd_out = open(outfile, O_WRONLY);
+	if (all->fd_out < 0)
+		perror("Error");
+	open_dup(all->pip2[0], all->fd_out, all->pip2[1]);
+	if (close(all->fd_out) < 0)
+		error_exit("file can't close");
 	i = 0;
 	while (all->path[i])
 	{
@@ -65,7 +66,8 @@ void	child_process2(int fd2, char **cmd2, t_pipex *all, char **envp)
 		++i;
 	}
 	execve(p_cmd, cmd2, envp);
-	perror("execve");
+	if (close(all->pip2[0]) < 0)
+		error_exit("pipe can't close");
 }
 
 //read from pipe, wait 
@@ -73,8 +75,8 @@ void	parent_process(t_pipex *all)
 {
 	int	status;
 
-	if (waitpid(all->pid1, NULL, 0) < 0)
-		error_exit("waitpid");
+	// if (waitpid(all->pid1, NULL, 0) < 0)
+	// 	error_exit("waitpid");
 	if (waitpid(all->pid2, &status, 0) < 0)
 		error_exit("waitpid");
 	if (WIFEXITED(status))
@@ -122,15 +124,15 @@ void	ft_free(char **s)
 	free(s);
 }
 
-// void	print_path(char **path)
-// {
-// 	int	i;
+void	print_path(char **path)
+{
+	int	i;
 
-// 	i = 0;
-// 	while (path[i])
-// 	{
-// 		printf("%s ", path[i]);
-// 		i++;
-// 	}
-// 	printf("\n");
-// }
+	i = 0;
+	while (path[i])
+	{
+		printf("%s ", path[i]);
+		i++;
+	}
+	printf("\n");
+}

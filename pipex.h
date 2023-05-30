@@ -6,7 +6,7 @@
 /*   By: yitoh <yitoh@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/05/12 13:18:23 by yitoh         #+#    #+#                 */
-/*   Updated: 2023/05/29 20:12:12 by yitoh         ########   odam.nl         */
+/*   Updated: 2023/05/30 12:54:09 by yitoh         ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,19 +36,25 @@ typedef struct s_pipex
 	char	*p_cmd2;
 	char	**path;
 	int		pip[2];
+	int		pip2[2];
 }				t_pipex;
 
 //pipex.c
 t_pipex	*pipex_init(int argc, char **argv, char **envp);
 void	error_exit(char *code);
+void	protect_close(int a, int b);
+
 
 //fork_process.c
-void	child_process1(int fd1, char **cmd1, t_pipex *all, char **envp);
-void	child_process2(int fd2, char **cmd2, t_pipex *all, char **envp);
+void	child_process1(char *infile, char **cmd1, t_pipex *all, char **envp);
+void	child_process2(char *outfile, char **cmd2, t_pipex *all, char **envp);
+
 void	parent_process(t_pipex *all);
 char	**split_path(char **envp);
 void	ft_free(char **s);
-//void	print_path(char **path);
+void	print_path(char **path);
+
+void	open_dup(int input, int output, int pip_non);
 
 
 #endif

@@ -6,12 +6,11 @@
 /*   By: yitoh <yitoh@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/05/12 13:17:13 by yitoh         #+#    #+#                 */
-/*   Updated: 2023/05/29 20:19:24 by yitoh         ########   odam.nl         */
+/*   Updated: 2023/05/30 13:02:24 by yitoh         ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "pipex.h"
-
 
 /*
 1. create 2 children so that parent(main) process still keeps going 
@@ -21,7 +20,6 @@
 4. once we find the paths, pass it to execve(cmd + path, 2d array cmd, envp)
 
 */
-
 
 int	main(int argc, char **argv, char **envp)
 {
@@ -36,16 +34,27 @@ int	main(int argc, char **argv, char **envp)
 	if (all->pid1 < 0)
 		error_exit("fork");
 	if (all->pid1 == 0)
-		child_process1(all->fd_in, all->cmd1, all, envp);
+	{
+		child_process1(all->in_f, all->cmd1, all, envp);
+		protect_close(all->pip[0], all->pip[1]);
+	}
 	else
 	{
+		if (waitpid(all->pid1, NULL, 0) < 0)
+			error_exit("waitpid");
+		//sth is wrong
+		if (pipe(all->pip2) < 0)
+			exit(EXIT_FAILURE);
 		all->pid2 = fork();
 		if (all->pid2 < 0)
 			error_exit("fork");
 		if (all->pid2 == 0)
-			child_process2(all->fd_out, all->cmd2, all, envp);
-		else
-			parent_process(all);
+		{
+			child_process2(all->out_f, all->cmd2, all, envp);
+			protect_close(all->pip2[0], all->pip2[1]);
+			exit (EXIT_FAILURE);
+		}
+		parent_process(all);
 	}
 	exit(EXIT_SUCCESS);
 }
@@ -62,6 +71,8 @@ t_pipex	*pipex_init(int argc, char **argv, char **envp)
 		return (NULL);
 	all->in_f = argv[1];
 	all->out_f = argv[4];
+
+//check if it's one cmd or with flag
 	all->cmd1 = ft_split(argv[2], ' ');
 	if (!all->cmd1)
 		perror("Error");
@@ -71,12 +82,12 @@ t_pipex	*pipex_init(int argc, char **argv, char **envp)
 	all->path = split_path(envp);
 	if (!all->path)
 		perror("Error");
-	all->fd_in = open(all->in_f, O_RDONLY);
-	if (all->fd_in < 0)
-		perror("Error");
-	all->fd_out = open(all->in_f, O_WRONLY);
-	if (all->fd_out < 0)
-		perror("Error");
+	// all->fd_in = open(all->in_f, O_RDONLY);
+	// if (all->fd_in < 0)
+	// 	perror("Error");
+	// all->fd_out = open(all->in_f, O_WRONLY);
+	// if (all->fd_out < 0)
+	// 	perror("Error");
 	return (all);
 }
 
@@ -84,6 +95,14 @@ void	error_exit(char *code)
 {
 	perror(code);
 	exit(EXIT_FAILURE);
+}
+
+void	protect_close(int a, int b)
+{
+	if (close(a) < 0)
+		error_exit("file can't close");
+	if (close(b) < 0)
+		error_exit("pipe can't close");
 }
 
 /*
