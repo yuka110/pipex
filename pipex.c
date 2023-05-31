@@ -6,7 +6,7 @@
 /*   By: yitoh <yitoh@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/05/12 13:17:13 by yitoh         #+#    #+#                 */
-/*   Updated: 2023/05/30 13:02:24 by yitoh         ########   odam.nl         */
+/*   Updated: 2023/05/31 16:51:57 by yitoh         ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,7 +18,6 @@
 2. use waitpid() to wait both children - get exit status from children function
 3. use access() in while loop to test whether command exists in te path and executable
 4. once we find the paths, pass it to execve(cmd + path, 2d array cmd, envp)
-
 */
 
 int	main(int argc, char **argv, char **envp)
@@ -32,30 +31,23 @@ int	main(int argc, char **argv, char **envp)
 		exit(EXIT_FAILURE);
 	all->pid1 = fork();
 	if (all->pid1 < 0)
-		error_exit("fork");
+		error_exit("fork 1 failed");
 	if (all->pid1 == 0)
 	{
-		child_process1(all->in_f, all->cmd1, all, envp);
-		protect_close(all->pip[0], all->pip[1]);
+		child_process1(all->cmd1, all, envp);
+		// if (close(all->pip[1]) < 0)
+		// 	error_exit("pip[1] can't close");
 	}
-	else
+	all->pid2 = fork();
+	if (all->pid2 < 0)
+		error_exit("fork 2 failed");
+	if (all->pid2 == 0)
 	{
-		if (waitpid(all->pid1, NULL, 0) < 0)
-			error_exit("waitpid");
-		//sth is wrong
-		if (pipe(all->pip2) < 0)
-			exit(EXIT_FAILURE);
-		all->pid2 = fork();
-		if (all->pid2 < 0)
-			error_exit("fork");
-		if (all->pid2 == 0)
-		{
-			child_process2(all->out_f, all->cmd2, all, envp);
-			protect_close(all->pip2[0], all->pip2[1]);
-			exit (EXIT_FAILURE);
-		}
-		parent_process(all);
+		child_process2(all->cmd2, all, envp);
+		// if (close(all->pip[0]) < 0)
+		// 	error_exit("pip[0] can't close");
 	}
+	parent_process(all);
 	exit(EXIT_SUCCESS);
 }
 
@@ -71,8 +63,6 @@ t_pipex	*pipex_init(int argc, char **argv, char **envp)
 		return (NULL);
 	all->in_f = argv[1];
 	all->out_f = argv[4];
-
-//check if it's one cmd or with flag
 	all->cmd1 = ft_split(argv[2], ' ');
 	if (!all->cmd1)
 		perror("Error");
@@ -82,12 +72,12 @@ t_pipex	*pipex_init(int argc, char **argv, char **envp)
 	all->path = split_path(envp);
 	if (!all->path)
 		perror("Error");
-	// all->fd_in = open(all->in_f, O_RDONLY);
-	// if (all->fd_in < 0)
-	// 	perror("Error");
-	// all->fd_out = open(all->in_f, O_WRONLY);
-	// if (all->fd_out < 0)
-	// 	perror("Error");
+	all->fd_in = open(all->in_f, O_RDONLY);
+	if (all->fd_in < 0)
+		perror("Error");
+	all->fd_out = open(all->out_f, O_WRONLY);
+	if (all->fd_out < 0)
+		perror("Error");
 	return (all);
 }
 
@@ -109,7 +99,6 @@ void	protect_close(int a, int b)
 
 pipe connects two processes childs/parent
 pipe[1] = write -> pipe[0] = read
-
 
 use ft_split to find right folder for the command devided by :
 */
