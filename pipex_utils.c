@@ -6,13 +6,13 @@
 /*   By: yitoh <yitoh@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/05/30 12:24:37 by yitoh         #+#    #+#                 */
-/*   Updated: 2023/05/31 16:34:36 by yitoh         ########   odam.nl         */
+/*   Updated: 2023/06/01 18:32:49 by yitoh         ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "pipex.h"
 
-void	open_dup(int input, int output, int pip_non)
+void	dupx2_close(int input, int output, int pip_non)
 {
 	if (dup2(input, 0) < 0)
 		perror("dup2");

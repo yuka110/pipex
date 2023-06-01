@@ -6,7 +6,7 @@
 /*   By: yitoh <yitoh@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/05/12 13:18:23 by yitoh         #+#    #+#                 */
-/*   Updated: 2023/05/31 12:46:21 by yitoh         ########   odam.nl         */
+/*   Updated: 2023/06/01 18:36:43 by yitoh         ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -47,13 +47,12 @@ void	protect_close(int a, int b);
 //fork_process.c
 void	child_process1(char **cmd1, t_pipex *all, char **envp);
 void	child_process2(char **cmd2, t_pipex *all, char **envp);
-
 void	parent_process(t_pipex *all);
 char	**split_path(char **envp);
 void	ft_free(char **s);
-void	print_path(char **path);
 
-void	open_dup(int input, int output, int pip_non);
+
+void	dupx2_close(int input, int output, int pip_non);
 
 
 #endif

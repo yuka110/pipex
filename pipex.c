@@ -6,19 +6,14 @@
 /*   By: yitoh <yitoh@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/05/12 13:17:13 by yitoh         #+#    #+#                 */
-/*   Updated: 2023/05/31 16:51:57 by yitoh         ########   odam.nl         */
+/*   Updated: 2023/06/01 18:35:54 by yitoh         ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "pipex.h"
 
-/*
-1. create 2 children so that parent(main) process still keeps going 
-	even when one child process was unsuccessful
-2. use waitpid() to wait both children - get exit status from children function
-3. use access() in while loop to test whether command exists in te path and executable
-4. once we find the paths, pass it to execve(cmd + path, 2d array cmd, envp)
-*/
+// how to delete content in outfile
+// what if outfile doesn't exist
 
 int	main(int argc, char **argv, char **envp)
 {
@@ -33,20 +28,12 @@ int	main(int argc, char **argv, char **envp)
 	if (all->pid1 < 0)
 		error_exit("fork 1 failed");
 	if (all->pid1 == 0)
-	{
 		child_process1(all->cmd1, all, envp);
-		// if (close(all->pip[1]) < 0)
-		// 	error_exit("pip[1] can't close");
-	}
 	all->pid2 = fork();
 	if (all->pid2 < 0)
 		error_exit("fork 2 failed");
 	if (all->pid2 == 0)
-	{
 		child_process2(all->cmd2, all, envp);
-		// if (close(all->pip[0]) < 0)
-		// 	error_exit("pip[0] can't close");
-	}
 	parent_process(all);
 	exit(EXIT_SUCCESS);
 }
@@ -92,7 +79,7 @@ void	protect_close(int a, int b)
 	if (close(a) < 0)
 		error_exit("file can't close");
 	if (close(b) < 0)
-		error_exit("pipe can't close");
+		error_exit("file can't close");
 }
 
 /*

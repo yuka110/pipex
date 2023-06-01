@@ -6,23 +6,20 @@
 /*   By: yitoh <yitoh@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/05/22 16:09:09 by yitoh         #+#    #+#                 */
-/*   Updated: 2023/05/31 16:56:19 by yitoh         ########   odam.nl         */
+/*   Updated: 2023/06/01 18:36:12 by yitoh         ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "pipex.h"
 
-//read from infile, write to pipe
+//read from infile, execute 1st command, write to pipe
 void	child_process1(char **cmd1, t_pipex *all, char **envp)
 {
 	char	*p_cmd;
 	int		i;
 
-	open_dup(all->fd_in, all->pip[1], all->pip[0]);
-	// if (close(0) < 0)
-	// 	error_exit("fd_in can't close");
-	if (close(all->fd_in) < 0)
-		error_exit("fd_in can't close");
+	dupx2_close(all->fd_in, all->pip[1], all->pip[0]);
+	protect_close(all->fd_in, all->pip[1]);
 	i = 0;
 	while (all->path[i])
 	{
@@ -34,20 +31,17 @@ void	child_process1(char **cmd1, t_pipex *all, char **envp)
 		free(p_cmd);
 		++i;
 	}
-	if (close(all->pip[1]) < 0)
-		error_exit("pip[1] can't close");
 	execve(p_cmd, cmd1, envp);
 }
 
-//read from pipe, wait 
+//read from pipe, execute 2nd command, write to outfile
 void	child_process2(char **cmd2, t_pipex *all, char **envp)
 {
 	char	*p_cmd;
 	int		i;
 
-	open_dup(all->pip[0], all->fd_out, all->pip[1]);
-	if (close(all->fd_out) < 0)
-		error_exit("fd_out can't close");
+	dupx2_close(all->pip[0], all->fd_out, all->pip[1]);
+	protect_close(all->fd_out, all->pip[0]);
 	i = 0;
 	while (all->path[i])
 	{
@@ -59,8 +53,6 @@ void	child_process2(char **cmd2, t_pipex *all, char **envp)
 		free(p_cmd);
 		++i;
 	}
-	if (close(all->pip[0]) < 0)
-		error_exit("pip[0] can't close");
 	execve(p_cmd, cmd2, envp);
 }
 
@@ -117,17 +109,4 @@ void	ft_free(char **s)
 		++i;
 	}
 	free(s);
-}
-
-void	print_path(char **path)
-{
-	int	i;
-
-	i = 0;
-	while (path[i])
-	{
-		printf("%s ", path[i]);
-		i++;
-	}
-	printf("\n");
 }
