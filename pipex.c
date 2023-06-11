@@ -6,86 +6,120 @@
 /*   By: yitoh <yitoh@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/05/12 13:17:13 by yitoh         #+#    #+#                 */
-/*   Updated: 2023/06/01 18:35:54 by yitoh         ########   odam.nl         */
+/*   Updated: 2023/06/11 14:29:36 by yitoh         ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "pipex.h"
 
-// how to delete content in outfile
-// what if outfile doesn't exist
-
 int	main(int argc, char **argv, char **envp)
 {
 	t_pipex	*all;
 
-	all = pipex_init(argc, argv, envp);
-	if (!all)
-		exit(EXIT_FAILURE);
+	if (argc != 5)
+	{
+		write(2, "Error: Arguments are not equal to 5\n", 37);
+		exit (EXIT_FAILURE);
+	}
+	all = pipex_init(argv, envp);
 	if (pipe(all->pip) < 0)
-		exit(EXIT_FAILURE);
+		ft_error("pipe", errno);
 	all->pid1 = fork();
 	if (all->pid1 < 0)
-		error_exit("fork 1 failed");
+		ft_error("fork", errno);
 	if (all->pid1 == 0)
 		child_process1(all->cmd1, all, envp);
 	all->pid2 = fork();
 	if (all->pid2 < 0)
-		error_exit("fork 2 failed");
+		ft_error("fork", errno);
 	if (all->pid2 == 0)
 		child_process2(all->cmd2, all, envp);
 	parent_process(all);
-	exit(EXIT_SUCCESS);
+	exit(all->ext_code);
 }
 
-//counter for the case where command includes str eg. grep "abc"
-t_pipex	*pipex_init(int argc, char **argv, char **envp)
+t_pipex	*pipex_init(char **argv, char **envp)
 {
 	t_pipex	*all;
 
-	if (argc != 5)
-		exit (EXIT_FAILURE);
 	all = malloc(sizeof(t_pipex));
 	if (!all)
-		return (NULL);
+		ft_error("Error", errno);
 	all->in_f = argv[1];
 	all->out_f = argv[4];
-	all->cmd1 = ft_split(argv[2], ' ');
-	if (!all->cmd1)
-		perror("Error");
-	all->cmd2 = ft_split(argv[3], ' ');
-	if (!all->cmd2)
-		perror("Error");
-	all->path = split_path(envp);
-	if (!all->path)
-		perror("Error");
 	all->fd_in = open(all->in_f, O_RDONLY);
 	if (all->fd_in < 0)
-		perror("Error");
-	all->fd_out = open(all->out_f, O_WRONLY);
+		ft_error("infile", errno);
+	all->fd_out = open(all->out_f, O_WRONLY | O_CREAT | O_TRUNC, 0777);
 	if (all->fd_out < 0)
-		perror("Error");
+		ft_error("outfile", errno);
+	cmd_init(argv[2], &all->cmd1, &all->p_cmd1, 1);
+	cmd_init(argv[3], &all->cmd2, &all->p_cmd2, 2);
+	all->path = split_path(envp);
 	return (all);
 }
 
-void	error_exit(char *code)
+//read from infile, execute 1st command, write to pipe
+void	child_process1(char **cmd1, t_pipex *all, char **envp)
 {
-	perror(code);
-	exit(EXIT_FAILURE);
+	char	*p_cmd;
+	int		i;
+
+	dupx2_close(all->fd_in, all->pip[1], all->pip[0]);
+	if (all->cmd1 && all->p_cmd1)
+		execve(all->p_cmd1, all->cmd1, envp);
+	i = 0;
+	while (all->path[i] && cmd1[0])
+	{
+		p_cmd = ft_strjoin(all->path[i], cmd1[0]);
+		if (!p_cmd)
+			ft_error("Error", errno);
+		if (!access(p_cmd, X_OK))
+			break ;
+		free(p_cmd);
+		++i;
+	}
+	if (!all->path[i] || !cmd1[0])
+		ft_error("cmd1: command not found\n", 127);
+	execve(p_cmd, cmd1, envp);
 }
 
-void	protect_close(int a, int b)
+//read from pipe, execute 2nd command, write to outfile
+void	child_process2(char **cmd2, t_pipex *all, char **envp)
 {
-	if (close(a) < 0)
-		error_exit("file can't close");
-	if (close(b) < 0)
-		error_exit("file can't close");
+	char	*p_cmd;
+	int		i;
+
+	dupx2_close(all->pip[0], all->fd_out, all->pip[1]);
+	if (all->cmd2 && all->p_cmd2)
+		execve(all->p_cmd2, all->cmd2, envp);
+	i = 0;
+	while (all->path[i] && cmd2[0])
+	{
+		p_cmd = ft_strjoin(all->path[i], cmd2[0]);
+		if (!p_cmd)
+			ft_error("Error", errno);
+		if (!access(p_cmd, X_OK))
+			break ;
+		free(p_cmd);
+		++i;
+	}
+	if (!all->path[i] || !cmd2[0])
+		ft_error("cmd2: command not found\n", 127);
+	execve(p_cmd, cmd2, envp);
 }
 
-/*
+void	parent_process(t_pipex *all)
+{
+	int	status;
 
-pipe connects two processes childs/parent
-pipe[1] = write -> pipe[0] = read
-
-use ft_split to find right folder for the command devided by :
-*/
+	if (close(all->pip[0]) < 0 | close(all->pip[1]) < 0
+		| close(all->fd_in) < 0 | close(all->fd_out) < 0)
+		ft_error("close", errno);
+	if (waitpid(all->pid1, NULL, 0) < 0)
+		ft_error("waitpid", errno);
+	if (waitpid(all->pid2, &status, 0) < 0)
+		ft_error("waitpid", errno);
+	if (WIFEXITED(status))
+		all->ext_code = WEXITSTATUS(status);
+}
