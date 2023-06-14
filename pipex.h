@@ -6,7 +6,7 @@
 /*   By: yitoh <yitoh@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/05/12 13:18:23 by yitoh         #+#    #+#                 */
-/*   Updated: 2023/06/11 14:31:27 by yitoh         ########   odam.nl         */
+/*   Updated: 2023/06/14 18:30:22 by yitoh         ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,28 +29,20 @@ typedef struct s_pipex
 	int		pid1;
 	int		pid2;
 	int		ext_code;
-	char	*in_f;
-	char	*out_f;
-	char	**cmd1;
-	char	**cmd2;
-	char	*p_cmd1;
-	char	*p_cmd2;
 	char	**path;
 	int		pip[2];
 }				t_pipex;
 
 //pipex.c
-t_pipex	*pipex_init(char **argv, char **envp);
-void	child_process1(char **cmd1, t_pipex *all, char **envp);
-void	child_process2(char **cmd2, t_pipex *all, char **envp);
+t_pipex	*pipex_init(char **envp);
 void	parent_process(t_pipex *all);
+void	child_process1(char *infile, char *argv, t_pipex *all, char **envp);
+void	child_process2(char *outfile, char *argv, t_pipex *all, char **envp);
 
 //pipex_utils.c
 char	**split_path(char **envp);
-void	dupx2_close(int input, int output, int pip_non);
-void	ft_error(char *str, int error);
-void	cmd_init(char *arg, char ***cmd, char **p_cmd, int num);
-void	take_cmd_out(char *arg, char ***cmd);
+void	ft_error(char *str, int error, int unset);
+char	*find_path(char **cmd, t_pipex *all);
 void	free_2darray(char **s);
 
 #endif

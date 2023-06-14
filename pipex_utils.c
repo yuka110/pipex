@@ -6,7 +6,7 @@
 /*   By: yitoh <yitoh@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/05/30 12:24:37 by yitoh         #+#    #+#                 */
-/*   Updated: 2023/06/11 14:31:19 by yitoh         ########   odam.nl         */
+/*   Updated: 2023/06/14 19:05:49 by yitoh         ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,83 +25,53 @@ char	**split_path(char **envp)
 		return (NULL);
 	path = ft_split(envp[i] + 5, ':');
 	if (!path)
-		ft_error ("Error", errno);
+		ft_error ("Error", errno, 0);
 	i = 0;
 	while (path[i])
 	{
 		path[i] = gnl_strjoin(path[i], "/");
 		if (!path[i])
-			ft_error ("Error", errno);
+			ft_error ("Error", errno, 0);
 		i++;
 	}
 	return (path);
 }
 
-void	dupx2_close(int input, int output, int pip_non)
+//error 127/126 don't work
+char	*find_path(char **cmd, t_pipex *all)
 {
-	if (dup2(input, 0) < 0 | close(input) < 0)
-		ft_error("dup2", errno);
-	if (dup2(output, 1) < 0 | close(output) < 0)
-		ft_error("dup2", errno);
-	if (close(pip_non) < 0)
-		ft_error("close", errno);
-}
+	char	*p_cmd;
+	int		i;
 
-void	ft_error(char *str, int error)
-{
-	if (error == 127)
+	if (ft_strchr(cmd[0], '/'))
 	{
-		ft_putstr_fd(str, 2);
-		exit(127);
+		p_cmd = ft_strdup(cmd[0]);
+		if (!p_cmd)
+			ft_error("Error", errno, 0);
+		if (access(p_cmd, X_OK))
+			ft_error(cmd[0], 126, 0);
+		return (free_2darray(cmd), p_cmd);
 	}
-	perror(str);
-	exit(errno);
-}
-
-void	cmd_init(char *arg, char ***cmd, char **p_cmd, int num)
-{
-	char	**tmp;
-
-	*p_cmd = NULL;
-	if (!ft_strchr(arg, '/'))
+	i = 0;
+	while (all->path[i] && cmd[0])
 	{
-		*cmd = ft_split(arg, ' ');
-		if (!cmd)
-			ft_error("Error", errno);
-		return ;
+		p_cmd = ft_strjoin(all->path[i], cmd[0]);
+		if (!p_cmd)
+			ft_error("Error", errno, 0);
+		if (!access(p_cmd, X_OK))
+			return (p_cmd);
+		free(p_cmd);
+		++i;
 	}
-	tmp = ft_split(arg, ' ');
-	if (!tmp)
-		ft_error("Error", errno);
-	if (access(tmp[0], X_OK) && num == 2)
-		ft_error("cmd: No such file or directory\n", 127);
-	else if (!access(tmp[0], X_OK))
-		*p_cmd = ft_strdup(tmp[0]);
-	free_2darray(tmp);
-	take_cmd_out(arg, cmd);
-}
-
-void	take_cmd_out(char *arg, char ***cmd)
-{
-	size_t	i;
-	size_t	len;
-	char	*tmp;
-
-	len = ft_strlen(arg) - 1;
-	i = len;
-	while (i >= 0)
-	{
-		if (arg[i] == '/')
-			break ;
-		--i;
-	}
-	tmp = ft_substr(arg, i + 1, len - i);
-	if (!tmp)
-		ft_error("Error", errno);
-	*cmd = ft_split(tmp, ' ');
-	if (!(*cmd))
-		ft_error("Error", errno);
-	free (tmp);
+	// if (!all->path)
+	// {
+	// 	p_cmd = ft_strjoin("./", cmd[0]);
+	// 	if (!p_cmd)
+	// 		ft_error("Error", errno, 0);
+	// 	if (access(p_cmd, X_OK))
+	// 		ft_error(cmd[0], 126, 0);
+	// }
+	return (ft_error(cmd[0], 127, 1), NULL);
 }
 
 void	free_2darray(char **s)
@@ -115,4 +85,28 @@ void	free_2darray(char **s)
 		i++;
 	}
 	free (s);
+}
+
+void	ft_error(char *str, int error, int unset)
+{
+	ft_putstr_fd("pipex: ", 2);
+	if (error == 127)
+	{
+		if (str)
+			ft_putstr_fd(str, 2);
+		if (unset == 1)
+			ft_putstr_fd(": No such file or directory\n", 2);
+		else
+			ft_putstr_fd(": command not found\n", 2);
+		exit(127);
+	}
+	if (error == 126)
+	{
+		if (str)
+			ft_putstr_fd(str, 2);
+		ft_putstr_fd(": Permission denied\n", 2);
+		exit(126);
+	}
+	perror(str);
+	exit(errno);
 }
